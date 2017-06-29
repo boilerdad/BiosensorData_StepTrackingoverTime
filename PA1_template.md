@@ -1,9 +1,4 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 
 ## Loading and preprocessing the data
@@ -21,7 +16,8 @@ The variables included in this dataset are:
 The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset. It is initially read into a data.frame called
 stepData.
 
-```{r}
+
+```r
 stepData <- read.csv(file = "activity.csv", header = TRUE)
 ```
 
@@ -34,27 +30,29 @@ Also calculated is the range of the number of steps taken in a day, the mean, an
 
 Next a histogram is plotted that shows the frequency of the number of steps taken each day. 
 
-```{r}
+
+```r
 stepsPerDay <- aggregate(steps ~ date, data=stepData, FUN=sum, na.rm = TRUE)
 stepsMeanPerDay <- format(mean(stepsPerDay$steps, na.rm = TRUE), nsmall = 1, scientific = F)
 stepsMedianPerDay <- format(median(stepsPerDay$steps, na.rm = TRUE), nsmall = 1, scientific = F)
 stepsRangePerDay <- range(stepsPerDay$steps,  na.rm = TRUE)
 hist(stepsPerDay$steps, breaks = 14, col = "lightblue", xlab="Total Steps per Day", main = "Frequency Count of Total Steps per Day")
 abline(v=median(stepsPerDay$steps),col="navy",lwd=2)
-
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+
   
-The number of steps taken per day varies substantially. The range is between `r stepsRangePerDay[1]` and `r stepsRangePerDay[2]`.
-The mean number of steps taken each day is `r stepsMeanPerDay`, and the median is `r stepsMedianPerDay`. Because the mean and median are quite close, they are depicted by the Navy blue line.
+The number of steps taken per day varies substantially. The range is between 41 and 21194.
+The mean number of steps taken each day is 10766.19, and the median is 10765. Because the mean and median are quite close, they are depicted by the Navy blue line.
 
 
 ## What is the average daily activity pattern?
 
 While the number of steps taken in each 5-minute interval may vary from day to day, there still appears to be some patterns to the activity. The following code creates a time series plot and identifies and plots the interval containing the maximum average number of steps. 
 
-```{r}
 
+```r
 ## Calculate the average number of steps in each interval across all days 
 stepsPerInterval <- aggregate(steps ~ interval, data = stepData, FUN=mean, na.rm = T)
 maxsteps <- format(stepsPerInterval[which.max(stepsPerInterval[,2]),2], nsmall = 1)
@@ -65,12 +63,12 @@ if (nchar(maxinterval) == 3) maxtime <- paste0("0",substr(maxinterval,1,1),":",s
 ## Plot the time series of steps across intervals
 with(stepsPerInterval, plot(interval, steps, type="l", xlab = "Number of Steps Taken During Interval", ylab = "Time Interval", main = "Average Daily Steps in Five Minute Intervals", col = "blue"))
 abline(v=stepsPerInterval[which.max(stepsPerInterval[,2]),1], col = "navy", lwd = 2)
-
-
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
-The average maximum number of steps is `r maxsteps` which occurred at the interval starting at `r maxtime`, and identified with the vertical line.
+
+The average maximum number of steps is 206.1698 which occurred at the interval starting at 08:35.00, and identified with the vertical line.
 
 ## Imputing missing values
 

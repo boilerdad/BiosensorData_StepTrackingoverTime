@@ -22,7 +22,10 @@ The dataset is stored in a comma-separated-value (CSV) file and there are a tota
 stepData.
 
 ```{r}
+setwd("C:/Users/Dr. Jeff Dunlap/Google Drive/coursera/Data Science Course/Course Materials/5-Reproducible Research/Week 2/Programming Assignment/BiosensorData_StepTrackingoverTime")
 stepData <- read.csv(file = "activity.csv", header = TRUE)
+
+library(lubridate)
 ```
 
 
@@ -36,8 +39,8 @@ Next a histogram is plotted that shows the frequency of the number of steps take
 
 ```{r}
 stepsPerDay <- aggregate(steps ~ date, data=stepData, FUN=sum, na.rm = TRUE)
-stepsMeanPerDay <- format(mean(stepsPerDay$steps, na.rm = TRUE), nsmall = 1, scientific = F)
-stepsMedianPerDay <- format(median(stepsPerDay$steps, na.rm = TRUE), nsmall = 1, scientific = F)
+stepsMeanPerDay <- as.character(round(mean(stepsPerDay$steps, na.rm = TRUE), digits = 1))
+stepsMedianPerDay <- median(stepsPerDay$steps, na.rm = TRUE)
 stepsRangePerDay <- range(stepsPerDay$steps,  na.rm = TRUE)
 hist(stepsPerDay$steps, breaks = 14, col = "lightblue", xlab="Total Steps per Day", main = "Frequency Count of Total Steps per Day")
 abline(v=median(stepsPerDay$steps),col="navy",lwd=2)
@@ -57,7 +60,7 @@ While the number of steps taken in each 5-minute interval may vary from day to d
 
 ## Calculate the average number of steps in each interval across all days 
 stepsPerInterval <- aggregate(steps ~ interval, data = stepData, FUN=mean, na.rm = T)
-maxsteps <- format(stepsPerInterval[which.max(stepsPerInterval[,2]),2], nsmall = 1)
+maxsteps <- as.character(round(stepsPerInterval[which.max(stepsPerInterval[,2]),2], digits = 1))
 maxinterval <- stepsPerInterval[which.max(stepsPerInterval[,2]),1]
 
 if (nchar(maxinterval) == 3) maxtime <- paste0("0",substr(maxinterval,1,1),":",substr(maxinterval,2,3),".00") else maxtime <- paste0(substr(maxinterval,1,2),":",substr(maxinterval,3,4),".00")
@@ -70,10 +73,66 @@ abline(v=stepsPerInterval[which.max(stepsPerInterval[,2]),1], col = "navy", lwd 
 ```
 
 
-The average maximum number of steps is `r maxsteps` which occurred at the interval starting at `r maxtime`, and identified with the vertical line.
+The average maximum number of steps is `r maxsteps` which occurred in the morning, at the interval starting at `r maxtime`, and identified with the vertical line.
 
 ## Imputing missing values
 
+Upon examination there appears to be quite a few missing values for the variable steps. It is prudent to wonder if there is any impact on the results of this analysis because of the number of missing values. In this section, the number of missing values for the variable steps will be calculated and then missing data will be replaced by an imputed value. The imputed value is based on the average number of steps during the same interval on all days without missing data for the steps variable.
 
+``` {r}
+
+## Calculate the number of missing and non missing "steps" values and determine the percentage of missing - the scales package is used to format the percentage output.
+library(scales)
+nofmissingsteps <- sum(is.na(stepData$steps))
+nofnonmissingsteps <- sum(!is.na(stepData$steps))
+totalnofsteps <- nofmissingsteps + nofnonmissingsteps
+pctofmissingsteps <- percent(nofmissingsteps/(nofmissingsteps + nofnonmissingsteps))
+```
+
+The results of the analysis indicate that of the total number of observations, the value of the variable steps is missing `r nofmissingsteps` times out of a total of `r totalnofsteps`observations, which is `r pctofmissingsteps`. As a result, it makes sense to impute values into these missing values.
+
+``` {r}
+## Imputing the missing data for steps 
+## the data.frame stepsPerInterval already has the mean number of steps per interval calculated
+## need to replace all missing steps values with the correct mean based on the interval
+
+stepdata.nonmiss <- stepData
+for (i in 1:nrow(stepdata.nonmiss)) {
+      stepdata.nonmiss[i,1] <- ifelse(is.na(stepData[i,1]),
+            stepsPerInterval$steps[match(stepData[i,3],
+            stepsPerInterval[,1])], stepdata.nonmiss[i,1])
+}
+
+stepsPerDay.2 <- aggregate(steps ~ date, data=stepdata.nonmiss, FUN=sum, na.rm = TRUE)
+stepsMeanPerDay.2 <- as.character(round(mean(stepsPerDay.2$steps, na.rm = TRUE), digits = 1))
+stepsMedianPerDay.2 <- as.character(round(median(stepsPerDay.2$steps, na.rm = TRUE), digits=0))
+stepsRangePerDay.2 <- trunc(range(stepsPerDay.2$steps,  na.rm = TRUE), digits = 0, scientific = F)
+hist(stepsPerDay.2$steps, breaks = 14, col = "lightgreen", xlab="Total Steps per Day", main = "Frequency Count of Total Steps per Day")
+abline(v=median(stepsPerDay.2$steps),col="darkgreen",lwd=2)
+
+```
+
+After the missing steps have been imputed, the mean number of steps taken each day is `r stepsMeanPerDay.2`, and the median is `r stepsMedianPerDay.2`. Because the mean and median are quite close, they are depicted by the dark green line. The affect of imputing new values in place of missing values appears to be nill. It does result in a slight tightening of the difference between the mean and the median.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+It is not uncommon for individuals to have different walking patterns on days when they are not at work, such as the weekends. In this section these patterns are examined to determine if these is a difference. The first step is to determine whether the date of the date collection is a weekend or weekday. The a time series plot will show the differences.
+
+``` {r}
+
+## determine the day of the week
+stepdata.nonmiss$weekday <- wday(stepdata.nonmiss$date)
+
+## assign as week day or weekend day
+stepdata.nonmiss$weekend <- ifelse(grepl("7",stepdata.nonmiss$weekday) | grepl("1",stepdata.nonmiss$weekday),"Weekend","Weekday")
+
+library(ggplot2)
+g <- ggplot(stepdata.nonmiss, aes(interval, steps)) + geom_line()
+g <- g + facet_grid(weekend ~ .)
+g <- g + labs(x = "Time Interval for Steps", y = "Number of Steps", title = "Comparison of Steps Taken on Weekend and Week Days")
+g
+```
+
+Based on the graphs above, it appears that there are some difference in the pattern of steps on weekdays when compared to weekends. Steps on week days seem to peak in the morning between 6:00 and 9:30 AM, then again at the lunch hour. On weekends, there are fewer morning steps, suggesting that the subject sleeps later most mornings on the weekends, also the peak number of steps seems to occur closer to the late afternoon and evening times.
+
+
